@@ -41,17 +41,34 @@ app.post("/api/mail/send", async (req, res) => {
     return res.status(400).json({ error: "Champs manquants" });
   }
 
+  // Mode test : simuler l'envoi d'email
+  if (process.env.NODE_ENV === 'test' || !process.env.SENDGRID_API_KEY || process.env.SENDGRID_API_KEY === 'your-sendgrid-api-key') {
+    console.log(`📧 [MODE TEST] Email simulé vers ${to}:`);
+    console.log(`   Sujet: ${subject}`);
+    console.log(`   Contenu: ${text}`);
+    return res.status(200).json({ 
+      message: "Email simulé (mode test)", 
+      debug: { to, subject, text } 
+    });
+  }
+
   try {
+    console.log(`📧 Tentative d'envoi d'email vers ${to} depuis ${process.env.FROM_EMAIL}`);
+    console.log(`   Sujet: ${subject}`);
+    console.log(`   Contenu: ${text}`);
+    
     await sgMail.send({
       to,
-      from: "alexismelia@hotmail.fr", // Remplace par ton sender validé SendGrid !
+      from: process.env.FROM_EMAIL || "alexismelia@hotmail.fr",
       subject,
       text,
       html,
     });
+    
+    console.log(`✅ Email envoyé avec succès vers ${to}`);
     res.status(200).json({ message: "Mail envoyé" });
   } catch (err) {
-    console.error("Erreur mail:", err.response?.body || err.message);
+    console.error("❌ Erreur mail:", err.response?.body || err.message);
     res.status(500).json({ error: "Erreur d'envoi du mail" });
   }
 });
